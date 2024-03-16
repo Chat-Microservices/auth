@@ -1,6 +1,6 @@
 module github.com/semho/chat-microservices/auth
 
-go 1.20.0
+go 1.20
 
 require (
 	github.com/brianvoe/gofakeit v3.18.0+incompatible
