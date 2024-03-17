@@ -60,7 +60,7 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           key: ${{ secrets.SSH_KEY }}
           port: 22
-          source: "./migration.Dockerfile, migrations, docker-compose.yaml"
+          source: "./migration.Dockerfile, migrations, ./docker-compose.yaml, ./migration.sh"
           target: "/root/auth/"
       - name: Deploy to Selectel Cloud via SSH action
         uses: appleboy/ssh-action@v1.0.0
@@ -70,6 +70,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           envs: IMAGE_NAME, CONTAINER_NAME, REGISTRY, GITHUB_SHA, TAG_NAME
           script: |
+            cd /root/auth
             docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
             docker image rm "$IMAGE_NAME" || true
             docker pull $REGISTRY/$IMAGE_NAME:$TAG_NAME
