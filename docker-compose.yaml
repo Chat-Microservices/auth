@@ -1,0 +1,48 @@
+version: '3.7'
+
+volumes:
+  pg_vol_auth:
+
+networks:
+  auth-network:
+    driver: bridge
+
+services:
+  pg-auth:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+      - POSTGRES_DB=${PG_DATABASE_NAME}
+    ports:
+      - "${PG_PORT}:5432"
+    volumes:
+      - pg_vol_auth:/var/lib/postgresql/auth_data
+    networks:
+      - auth-network
+
+  migrator:
+    build:
+      context: .
+      dockerfile: migration.Dockerfile
+    restart: on-failure
+    depends_on:
+      - pg-auth
+    networks:
+      - auth-network
+
+  auth:
+    container_name: auth
+    image: auth
+    command: [ "./entrypoint.sh" ]
+    volumes:
+      - ${BASE_DIR}.env:/root/.env
+    depends_on:
+      - pg-auth
+      - migrator
+    networks:
+      - auth-network
+    ports:
+      - "${GRPC_PORT}:50051"
