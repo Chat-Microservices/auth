@@ -23,16 +23,6 @@ services:
     networks:
       - auth-network
 
-  migrator:
-    build:
-      context: .
-      dockerfile: migration.Dockerfile
-    restart: on-failure
-    depends_on:
-      - pg-auth
-    networks:
-      - auth-network
-
   auth:
     container_name: auth
     build:
@@ -43,7 +33,6 @@ services:
       - ${BASE_DIR}.env:/root/.env
     depends_on:
       - pg-auth
-      - migrator
     networks:
       - auth-network
     ports:
