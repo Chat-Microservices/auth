@@ -1,4 +1,5 @@
 #!/bin/sh
+source .env
 
 wait_for_port() {
     host="$1"
@@ -11,4 +12,12 @@ wait_for_port() {
 
 # Ожидание доступности порта
 wait_for_port "pg-auth" "5432"
+
+# накатываем миграции
+if ! goose -dir "${MIGRATION_DIR}" postgres "${MIGRATION_DSN}" up -v; then
+  echo "Migration failed"
+  exit 1
+fi
+
+# запускаем приложение
 ./auth_server -config-path=/root/.env
