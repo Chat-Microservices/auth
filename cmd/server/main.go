@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/semho/chat-microservices/auth/internal/config"
 	"github.com/semho/chat-microservices/auth/internal/config/env"
@@ -16,8 +17,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
 	"net"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -56,22 +55,24 @@ func (s *server) userExists(ctx context.Context, userID int64) (bool, error) {
 	return exists, nil
 }
 
-func buildUpdateQuery(req UpdateUserRequest) (string, []any) {
-	var setStatements []string
-	var values []any
+func buildUpdateQuery(req UpdateUserRequest) (string, []any, error) {
+	columns := make(map[string]interface{})
 
 	if req.Name != "" {
-		setStatements = append(setStatements, "name = $"+strconv.Itoa(len(values)+1))
-		values = append(values, req.Name)
+		columns["name"] = req.Name
 	}
 
 	if req.Email != "" {
-		setStatements = append(setStatements, "email = $"+strconv.Itoa(len(values)+1))
-		values = append(values, req.Email)
+		columns["email"] = req.Email
 	}
 
-	query := "UPDATE users SET " + strings.Join(setStatements, ", ") + " WHERE id = $" + strconv.Itoa(len(values)+1)
-	return query, append(values, req.ID)
+	query, args, err := sq.Update("users").
+		PlaceholderFormat(sq.Dollar).
+		SetMap(columns).
+		Where(sq.Eq{"id": req.ID}).
+		ToSql()
+
+	return query, args, err
 }
 
 func (s *server) Get(ctx context.Context, req *desc.GetRequest) (*desc.GetResponse, error) {
@@ -86,9 +87,19 @@ func (s *server) Get(ctx context.Context, req *desc.GetRequest) (*desc.GetRespon
 		return nil, status.Error(codes.NotFound, "User not found")
 	}
 
+	query, args, err := sq.Select("id, name, email, role, created_at, updated_at").
+		From("users").
+		PlaceholderFormat(sq.Dollar).
+		Where(sq.Eq{"id": req.GetId()}).
+		ToSql()
+	if err != nil {
+		log.Println(err)
+		return nil, status.Error(codes.Internal, "Internal server error")
+	}
+
 	var user UserDB
-	err = s.pool.QueryRow(ctx, "SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = $1",
-		req.GetId()).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+	err = s.pool.QueryRow(ctx, query, args...).
+		Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		log.Println(err)
 		return nil, status.Error(codes.Internal, "Internal server error")
@@ -128,10 +139,20 @@ func (s *server) Create(ctx context.Context, req *desc.CreateRequest) (*desc.Cre
 		roleValue++
 	}
 
-	row := s.pool.QueryRow(ctx, `INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) 
-		RETURNING id`, req.GetDetail().Name, req.GetDetail().Email, req.GetPassword().Password, roleValue)
+	query, args, err := sq.Insert("users").
+		PlaceholderFormat(sq.Dollar).
+		Columns("name, email, password, role").
+		Values(req.GetDetail().Name, req.GetDetail().Email, req.GetPassword().Password, roleValue).
+		Suffix("RETURNING id").
+		ToSql()
+
+	if err != nil {
+		log.Printf("failed to build query: %v", err)
+		return nil, status.Error(codes.Internal, "Internal server error")
+	}
+
 	var userID int64
-	if err := row.Scan(&userID); err != nil {
+	if err = s.pool.QueryRow(ctx, query, args...).Scan(&userID); err != nil {
 		log.Printf("failed to insert user into the database: %v", err)
 		return nil, status.Error(codes.Internal, "Internal server error")
 	}
@@ -169,7 +190,11 @@ func (s *server) Update(ctx context.Context, req *desc.UpdateRequest) (*emptypb.
 		Name:  req.GetInfo().GetName().GetValue(),
 		Email: req.GetInfo().GetEmail().GetValue(),
 	}
-	query, values := buildUpdateQuery(updateRequest)
+	query, values, err := buildUpdateQuery(updateRequest)
+	if err != nil {
+		log.Println(err)
+		return nil, status.Error(codes.Internal, "Internal server error")
+	}
 
 	res, err := s.pool.Exec(ctx, query, values...)
 	if err != nil {
@@ -203,7 +228,16 @@ func (s *server) Delete(ctx context.Context, req *desc.DeleteRequest) (*emptypb.
 		return nil, status.Error(codes.NotFound, "User not found")
 	}
 
-	res, err := s.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, req.GetId())
+	query, args, err := sq.Delete("users").
+		PlaceholderFormat(sq.Dollar).
+		Where(sq.Eq{"id": req.GetId()}).
+		ToSql()
+	if err != nil {
+		log.Println(err)
+		return nil, status.Error(codes.Internal, "Internal server error")
+	}
+
+	res, err := s.pool.Exec(ctx, query, args...)
 	if err != nil {
 		log.Println(err)
 		return nil, status.Error(codes.Internal, "Internal server error")
