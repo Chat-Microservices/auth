@@ -1,5 +1,5 @@
 #!/bin/sh
-source .env
+source /root/.env
 
 wait_for_port() {
     host="$1"

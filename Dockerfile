@@ -17,7 +17,6 @@ WORKDIR /root/
 COPY --from=builder /github.com/semho/chat-microservices/auth/bin/auth_server .
 COPY --from=builder /github.com/semho/chat-microservices/auth/entrypoint.sh .
 COPY --from=builder /github.com/semho/chat-microservices/auth/migrations ./migrations
-COPY --from=builder /github.com/semho/chat-microservices/auth/.env .
 
 ADD https://github.com/pressly/goose/releases/download/v3.14.0/goose_linux_x86_64 /bin/goose
 RUN chmod +x /bin/goose
