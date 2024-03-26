@@ -23,17 +23,17 @@ services:
     networks:
       - auth-network
 
-  auth:
-    container_name: auth
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: [ "./entrypoint.sh" ]
-    volumes:
-      - ${BASE_DIR}.env:/root/.env
-    depends_on:
-      - pg-auth
-    networks:
-      - auth-network
-    ports:
-      - "${GRPC_PORT_EXTERNAL}:${GRPC_PORT}"
+#  auth:
+#    container_name: auth
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    command: [ "./entrypoint.sh" ]
+#    volumes:
+#      - ${BASE_DIR}.env:/root/.env
+#    depends_on:
+#      - pg-auth
+#    networks:
+#      - auth-network
+#    ports:
+#      - "${GRPC_PORT_EXTERNAL}:${GRPC_PORT}"
