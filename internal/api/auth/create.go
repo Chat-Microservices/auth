@@ -18,8 +18,8 @@ func (i *Implementation) Create(ctx context.Context, req *desc.CreateRequest) (*
 		return nil, status.Error(codes.InvalidArgument, "Password and Password Confirm do not match")
 	}
 
-	log.Printf("User name: %v", req.GetDetail().Name)
-	id, err := i.authService.Create(ctx, converter.ToAuthDetailFromDesc(req.GetDetail()), req.GetPassword().Password)
+	log.Printf("User name: %v", req.GetDetail().GetName())
+	id, err := i.authService.Create(ctx, converter.ToAuthDetailFromDesc(req.GetDetail()), req.GetPassword().GetPassword())
 	if err != nil {
 		return nil, err
 	}
