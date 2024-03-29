@@ -3,7 +3,7 @@ package authRepository
 import (
 	"context"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/semho/chat-microservices/auth/internal/client/db"
 	"github.com/semho/chat-microservices/auth/internal/model"
 	"github.com/semho/chat-microservices/auth/internal/repository"
 	"github.com/semho/chat-microservices/auth/internal/repository/auth/converter"
@@ -31,10 +31,10 @@ const (
 )
 
 type repo struct {
-	db *pgxpool.Pool
+	db db.Client
 }
 
-func NewRepository(db *pgxpool.Pool) repository.AuthRepository {
+func NewRepository(db db.Client) repository.AuthRepository {
 	return &repo{db: db}
 }
 
@@ -58,9 +58,13 @@ func (r repo) Get(ctx context.Context, id int64) (*model.User, error) {
 		return nil, status.Error(codes.Internal, "Internal server error")
 	}
 
+	q := db.Query{
+		Name:     "user_repository.Get",
+		QueryRow: query,
+	}
+
 	var user modelRepo.User
-	err = r.db.QueryRow(ctx, query, args...).
-		Scan(&user.ID, &user.Detail.Name, &user.Detail.Email, &user.Detail.Role, &user.CreatedAt, &user.UpdatedAt)
+	err = r.db.DB().ScanOneContext(ctx, &user, q, args...)
 	if err != nil {
 		log.Println(err)
 		return nil, status.Error(codes.Internal, "Internal server error")
@@ -83,8 +87,13 @@ func (r repo) Create(ctx context.Context, detail *model.Detail, pass string) (in
 		return 0, status.Error(codes.Internal, "Internal server error")
 	}
 
+	q := db.Query{
+		Name:     "user_repository.Create",
+		QueryRow: query,
+	}
+
 	var userID int64
-	if err = r.db.QueryRow(ctx, query, args...).Scan(&userID); err != nil {
+	if err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&userID); err != nil {
 		log.Printf("failed to insert user into the database: %v", err)
 		return 0, status.Error(codes.Internal, "Internal server error")
 	}
@@ -108,7 +117,12 @@ func (r repo) Update(ctx context.Context, updateUser *model.UpdateUserRequest) e
 		return status.Error(codes.Internal, "Internal server error")
 	}
 
-	res, err := r.db.Exec(ctx, query, values...)
+	q := db.Query{
+		Name:     "user_repository.Update",
+		QueryRow: query,
+	}
+
+	res, err := r.db.DB().ExecContext(ctx, q, values...)
 	if err != nil {
 		log.Println(err)
 		return status.Error(codes.Internal, "Internal server error")
@@ -138,7 +152,12 @@ func (r repo) Delete(ctx context.Context, id int64) error {
 		return status.Error(codes.Internal, "Internal server error")
 	}
 
-	res, err := r.db.Exec(ctx, query, args...)
+	q := db.Query{
+		Name:     "user_repository.Delete",
+		QueryRow: query,
+	}
+
+	res, err := r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
 		log.Println(err)
 		return status.Error(codes.Internal, "Internal server error")
@@ -151,7 +170,11 @@ func (r repo) Delete(ctx context.Context, id int64) error {
 
 func (r *repo) userExists(ctx context.Context, userID int64) (bool, error) {
 	var exists bool
-	err := r.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", userID).Scan(&exists)
+	q := db.Query{
+		Name:     "user_repository.Exist",
+		QueryRow: "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)",
+	}
+	err := r.db.DB().QueryRowContext(ctx, q, userID).Scan(&exists)
 	if err != nil {
 		return false, err
 	}

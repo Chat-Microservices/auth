@@ -2,8 +2,9 @@ package app
 
 import (
 	"context"
-	"github.com/jackc/pgx/v4/pgxpool"
 	authAPI "github.com/semho/chat-microservices/auth/internal/api/auth"
+	"github.com/semho/chat-microservices/auth/internal/client/db"
+	"github.com/semho/chat-microservices/auth/internal/client/db/pg"
 	"github.com/semho/chat-microservices/auth/internal/closer"
 	"github.com/semho/chat-microservices/auth/internal/config"
 	"github.com/semho/chat-microservices/auth/internal/config/env"
@@ -18,7 +19,7 @@ type serviceProvider struct {
 	pgConfig   config.PGConfig
 	grpcConfig config.GRPCConfig
 
-	pgPool         *pgxpool.Pool
+	dbClient       db.Client
 	authRepository repository.AuthRepository
 
 	authService service.AuthService
@@ -56,32 +57,29 @@ func (s *serviceProvider) GRPCConfig() config.GRPCConfig {
 	return s.grpcConfig
 }
 
-func (s *serviceProvider) GetPgPool(ctx context.Context) *pgxpool.Pool {
-	if s.pgPool == nil {
-		pool, err := pgxpool.Connect(ctx, s.GetPGConfig().DSN())
+func (s *serviceProvider) GetDBClient(ctx context.Context) db.Client {
+	if s.dbClient == nil {
+		cl, err := pg.New(ctx, s.GetPGConfig().DSN())
 		if err != nil {
-			log.Fatalf("failed to connect to database: %v", err)
+			log.Fatalf("failed to get db client: %v", err)
 		}
 
-		err = pool.Ping(ctx)
+		err = cl.DB().Ping(ctx)
 		if err != nil {
-			log.Fatalf("failed to ping database: %v", err)
+			log.Fatalf("failed to ping db: %v", err)
 		}
 
-		closer.Add(func() error {
-			pool.Close()
-			return nil
-		})
+		closer.Add(cl.Close)
 
-		s.pgPool = pool
+		s.dbClient = cl
 	}
 
-	return s.pgPool
+	return s.dbClient
 }
 
 func (s *serviceProvider) GetAuthRepository(ctx context.Context) repository.AuthRepository {
 	if s.authRepository == nil {
-		s.authRepository = authRepository.NewRepository(s.GetPgPool(ctx))
+		s.authRepository = authRepository.NewRepository(s.GetDBClient(ctx))
 	}
 
 	return s.authRepository
