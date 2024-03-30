@@ -12,6 +12,10 @@ import (
 	"log"
 )
 
+type key string
+
+const TxKey key = "tx"
+
 type pg struct {
 	dbc *pgxpool.Pool
 }
@@ -42,11 +46,22 @@ func (p *pg) ScanOneContext(ctx context.Context, dest any, q db.Query, args ...a
 
 func (p *pg) ExecContext(ctx context.Context, q db.Query, args ...any) (pgconn.CommandTag, error) {
 	logQuery(ctx, q, args...)
+
+	tx, ok := ctx.Value(TxKey).(pgx.Tx)
+	if ok {
+		return tx.Exec(ctx, q.QueryRow, args...)
+	}
+
 	return p.dbc.Exec(ctx, q.QueryRow, args...)
 }
 
 func (p *pg) QueryContext(ctx context.Context, q db.Query, args ...any) (pgx.Rows, error) {
 	logQuery(ctx, q, args...)
+
+	tx, ok := ctx.Value(TxKey).(pgx.Tx)
+	if ok {
+		return tx.Query(ctx, q.QueryRow, args...)
+	}
 
 	return p.dbc.Query(ctx, q.QueryRow, args...)
 }
@@ -54,7 +69,16 @@ func (p *pg) QueryContext(ctx context.Context, q db.Query, args ...any) (pgx.Row
 func (p *pg) QueryRowContext(ctx context.Context, q db.Query, args ...any) pgx.Row {
 	logQuery(ctx, q, args...)
 
+	tx, ok := ctx.Value(TxKey).(pgx.Tx)
+	if ok {
+		return tx.QueryRow(ctx, q.QueryRow, args...)
+	}
+
 	return p.dbc.QueryRow(ctx, q.QueryRow, args...)
+}
+
+func (p *pg) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error) {
+	return p.dbc.BeginTx(ctx, txOptions)
 }
 
 func (p *pg) Ping(ctx context.Context) error {
@@ -68,4 +92,8 @@ func (p *pg) Close() {
 func logQuery(ctx context.Context, q db.Query, args ...any) {
 	prettyQuery := prettier.Pretty(q.QueryRow, prettier.PlaceholderDollar, args...)
 	log.Println(ctx, fmt.Sprintf("sql: %s", q.Name), fmt.Sprintf("query: %s", prettyQuery))
+}
+
+func MakeContextTx(ctx context.Context, tx pgx.Tx) context.Context {
+	return context.WithValue(ctx, TxKey, tx)
 }

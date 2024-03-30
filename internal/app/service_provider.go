@@ -5,6 +5,7 @@ import (
 	authAPI "github.com/semho/chat-microservices/auth/internal/api/auth"
 	"github.com/semho/chat-microservices/auth/internal/client/db"
 	"github.com/semho/chat-microservices/auth/internal/client/db/pg"
+	"github.com/semho/chat-microservices/auth/internal/client/db/transaction"
 	"github.com/semho/chat-microservices/auth/internal/closer"
 	"github.com/semho/chat-microservices/auth/internal/config"
 	"github.com/semho/chat-microservices/auth/internal/config/env"
@@ -20,6 +21,7 @@ type serviceProvider struct {
 	grpcConfig config.GRPCConfig
 
 	dbClient       db.Client
+	txManger       db.TxManager
 	authRepository repository.AuthRepository
 
 	authService service.AuthService
@@ -77,6 +79,14 @@ func (s *serviceProvider) GetDBClient(ctx context.Context) db.Client {
 	return s.dbClient
 }
 
+func (s *serviceProvider) GetTxManager(ctx context.Context) db.TxManager {
+	if s.txManger == nil {
+		s.txManger = transaction.NewTransactionManager(s.GetDBClient(ctx).DB())
+	}
+
+	return s.txManger
+}
+
 func (s *serviceProvider) GetAuthRepository(ctx context.Context) repository.AuthRepository {
 	if s.authRepository == nil {
 		s.authRepository = authRepository.NewRepository(s.GetDBClient(ctx))
@@ -87,7 +97,7 @@ func (s *serviceProvider) GetAuthRepository(ctx context.Context) repository.Auth
 
 func (s *serviceProvider) GetAuthService(ctx context.Context) service.AuthService {
 	if s.authService == nil {
-		s.authService = authService.NewService(s.GetAuthRepository(ctx))
+		s.authService = authService.NewService(s.GetAuthRepository(ctx), s.GetTxManager(ctx))
 	}
 
 	return s.authService
