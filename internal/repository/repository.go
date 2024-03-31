@@ -12,4 +12,5 @@ type AuthRepository interface {
 	Update(ctx context.Context, updateUser *model.UpdateUserRequest) (db.Query, error)
 	Delete(ctx context.Context, id int64) (db.Query, error)
 	CreateLog(ctx context.Context, logger *model.Log) error
+	GetListLog(ctx context.Context, pageNumber uint64, pageSize uint64) ([]*model.Log, error)
 }

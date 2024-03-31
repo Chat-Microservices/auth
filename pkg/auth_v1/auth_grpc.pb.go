@@ -27,6 +27,7 @@ type AuthV1Client interface {
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetListLogs(ctx context.Context, in *GetListLogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
 }
 
 type authV1Client struct {
@@ -73,6 +74,15 @@ func (c *authV1Client) Delete(ctx context.Context, in *DeleteRequest, opts ...gr
 	return out, nil
 }
 
+func (c *authV1Client) GetListLogs(ctx context.Context, in *GetListLogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, "/auth_v1.AuthV1/GetListLogs", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthV1Server is the server API for AuthV1 service.
 // All implementations must embed UnimplementedAuthV1Server
 // for forward compatibility
@@ -81,6 +91,7 @@ type AuthV1Server interface {
 	Get(context.Context, *GetRequest) (*UserResponse, error)
 	Update(context.Context, *UpdateRequest) (*emptypb.Empty, error)
 	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
+	GetListLogs(context.Context, *GetListLogsRequest) (*LogsResponse, error)
 	mustEmbedUnimplementedAuthV1Server()
 }
 
@@ -99,6 +110,9 @@ func (UnimplementedAuthV1Server) Update(context.Context, *UpdateRequest) (*empty
 }
 func (UnimplementedAuthV1Server) Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedAuthV1Server) GetListLogs(context.Context, *GetListLogsRequest) (*LogsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetListLogs not implemented")
 }
 func (UnimplementedAuthV1Server) mustEmbedUnimplementedAuthV1Server() {}
 
@@ -185,6 +199,24 @@ func _AuthV1_Delete_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthV1_GetListLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetListLogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthV1Server).GetListLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/auth_v1.AuthV1/GetListLogs",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthV1Server).GetListLogs(ctx, req.(*GetListLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthV1_ServiceDesc is the grpc.ServiceDesc for AuthV1 service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -207,6 +239,10 @@ var AuthV1_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _AuthV1_Delete_Handler,
+		},
+		{
+			MethodName: "GetListLogs",
+			Handler:    _AuthV1_GetListLogs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

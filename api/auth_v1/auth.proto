@@ -13,6 +13,25 @@ service AuthV1 {
   rpc Get(GetRequest) returns (UserResponse);
   rpc Update(UpdateRequest) returns (google.protobuf.Empty);
   rpc Delete(DeleteRequest) returns (google.protobuf.Empty);
+  rpc GetListLogs(GetListLogsRequest) returns (LogsResponse);
+}
+
+message GetListLogsRequest {
+  uint64 page_number = 1;
+  uint64 page_size = 2;
+}
+
+message LogsResponse {
+  repeated Log logs = 1;
+}
+
+message Log {
+  int64 id = 1;
+  string action = 2;
+  int64 entity_id = 3;
+  string query = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
 }
 
 enum Role {

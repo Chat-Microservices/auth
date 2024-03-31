@@ -227,3 +227,32 @@ func (r repo) CreateLog(ctx context.Context, logger *model.Log) error {
 
 	return nil
 }
+
+func (r repo) GetListLog(ctx context.Context, pageNumber uint64, pageSize uint64) ([]*model.Log, error) {
+	offset := (pageNumber - 1) * pageSize
+
+	query, args, err := sq.Select(idColumn, actionColumn, entityColumnID, queryColumn).
+		From(tableName3).
+		PlaceholderFormat(sq.Dollar).
+		Limit(pageSize).
+		Offset(offset).
+		ToSql()
+	if err != nil {
+		log.Println(err)
+		return nil, status.Error(codes.Internal, "Internal server error")
+	}
+
+	q := db.Query{
+		Name:     "log_repository.Get",
+		QueryRow: query,
+	}
+
+	var logs []modelRepo.Log
+	err = r.db.DB().ScanAllContext(ctx, &logs, q, args...)
+	if err != nil {
+		log.Println(err)
+		return nil, status.Error(codes.Internal, "Internal server error")
+	}
+
+	return converter.ToLogFromRepo(logs), nil
+}
