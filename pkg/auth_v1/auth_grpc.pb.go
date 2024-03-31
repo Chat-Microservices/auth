@@ -24,7 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthV1Client interface {
 	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error)
-	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
+	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -46,8 +46,8 @@ func (c *authV1Client) Create(ctx context.Context, in *CreateRequest, opts ...gr
 	return out, nil
 }
 
-func (c *authV1Client) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error) {
-	out := new(GetResponse)
+func (c *authV1Client) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*UserResponse, error) {
+	out := new(UserResponse)
 	err := c.cc.Invoke(ctx, "/auth_v1.AuthV1/Get", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (c *authV1Client) Delete(ctx context.Context, in *DeleteRequest, opts ...gr
 // for forward compatibility
 type AuthV1Server interface {
 	Create(context.Context, *CreateRequest) (*CreateResponse, error)
-	Get(context.Context, *GetRequest) (*GetResponse, error)
+	Get(context.Context, *GetRequest) (*UserResponse, error)
 	Update(context.Context, *UpdateRequest) (*emptypb.Empty, error)
 	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedAuthV1Server()
@@ -91,7 +91,7 @@ type UnimplementedAuthV1Server struct {
 func (UnimplementedAuthV1Server) Create(context.Context, *CreateRequest) (*CreateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedAuthV1Server) Get(context.Context, *GetRequest) (*GetResponse, error) {
+func (UnimplementedAuthV1Server) Get(context.Context, *GetRequest) (*UserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
 func (UnimplementedAuthV1Server) Update(context.Context, *UpdateRequest) (*emptypb.Empty, error) {
