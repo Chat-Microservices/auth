@@ -26,8 +26,10 @@ const (
 
 	tableName2 = "roles"
 
-	idColumn2 = "id"
-	idName2   = "name"
+	tableName3     = "logs"
+	actionColumn   = "action"
+	entityColumnID = "entity_id"
+	queryColumn    = "query"
 )
 
 type repo struct {
@@ -38,14 +40,14 @@ func NewRepository(db db.Client) repository.AuthRepository {
 	return &repo{db: db}
 }
 
-func (r repo) Get(ctx context.Context, id int64) (*model.User, error) {
+func (r repo) Get(ctx context.Context, id int64) (*model.User, db.Query, error) {
 	exists, err := r.userExists(ctx, id)
 	if err != nil {
 		log.Println(err)
-		return nil, status.Error(codes.Internal, "Internal server error")
+		return nil, db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 	if !exists {
-		return nil, status.Error(codes.NotFound, "User not found")
+		return nil, db.Query{}, status.Error(codes.NotFound, "User not found")
 	}
 
 	query, args, err := sq.Select(idColumn, nameColumn, emailColumn, roleColumn, createdAtColumn, updatedAtColumn).
@@ -55,7 +57,7 @@ func (r repo) Get(ctx context.Context, id int64) (*model.User, error) {
 		ToSql()
 	if err != nil {
 		log.Println(err)
-		return nil, status.Error(codes.Internal, "Internal server error")
+		return nil, db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 
 	q := db.Query{
@@ -67,13 +69,13 @@ func (r repo) Get(ctx context.Context, id int64) (*model.User, error) {
 	err = r.db.DB().ScanOneContext(ctx, &user, q, args...)
 	if err != nil {
 		log.Println(err)
-		return nil, status.Error(codes.Internal, "Internal server error")
+		return nil, db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 
-	return converter.ToUserFromRepo(&user), nil
+	return converter.ToUserFromRepo(&user), q, nil
 }
 
-func (r repo) Create(ctx context.Context, detail *model.Detail, pass string) (int64, error) {
+func (r repo) Create(ctx context.Context, detail *model.Detail, pass string) (int64, db.Query, error) {
 
 	query, args, err := sq.Insert(tableName).
 		PlaceholderFormat(sq.Dollar).
@@ -84,7 +86,7 @@ func (r repo) Create(ctx context.Context, detail *model.Detail, pass string) (in
 
 	if err != nil {
 		log.Printf("failed to build query: %v", err)
-		return 0, status.Error(codes.Internal, "Internal server error")
+		return 0, db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 
 	q := db.Query{
@@ -95,26 +97,26 @@ func (r repo) Create(ctx context.Context, detail *model.Detail, pass string) (in
 	var userID int64
 	if err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&userID); err != nil {
 		log.Printf("failed to insert user into the database: %v", err)
-		return 0, status.Error(codes.Internal, "Internal server error")
+		return 0, db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 
-	return userID, nil
+	return userID, q, nil
 }
 
-func (r repo) Update(ctx context.Context, updateUser *model.UpdateUserRequest) error {
+func (r repo) Update(ctx context.Context, updateUser *model.UpdateUserRequest) (db.Query, error) {
 	exists, err := r.userExists(ctx, updateUser.ID)
 	if err != nil {
 		log.Println(err)
-		return status.Error(codes.Internal, "Internal server error")
+		return db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 	if !exists {
-		return status.Error(codes.NotFound, "User not found")
+		return db.Query{}, status.Error(codes.NotFound, "User not found")
 	}
 
 	query, values, err := buildUpdateQuery(*updateUser)
 	if err != nil {
 		log.Println(err)
-		return status.Error(codes.Internal, "Internal server error")
+		return db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 
 	q := db.Query{
@@ -125,22 +127,22 @@ func (r repo) Update(ctx context.Context, updateUser *model.UpdateUserRequest) e
 	res, err := r.db.DB().ExecContext(ctx, q, values...)
 	if err != nil {
 		log.Println(err)
-		return status.Error(codes.Internal, "Internal server error")
+		return db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 	rowCount := res.RowsAffected()
 	log.Printf("Обновлено строк: %d", rowCount)
 
-	return nil
+	return q, nil
 }
 
-func (r repo) Delete(ctx context.Context, id int64) error {
+func (r repo) Delete(ctx context.Context, id int64) (db.Query, error) {
 	exists, err := r.userExists(ctx, id)
 	if err != nil {
 		log.Println(err)
-		return status.Error(codes.Internal, "Internal server error")
+		return db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 	if !exists {
-		return status.Error(codes.NotFound, "User not found")
+		return db.Query{}, status.Error(codes.NotFound, "User not found")
 	}
 
 	query, args, err := sq.Delete("users").
@@ -149,7 +151,7 @@ func (r repo) Delete(ctx context.Context, id int64) error {
 		ToSql()
 	if err != nil {
 		log.Println(err)
-		return status.Error(codes.Internal, "Internal server error")
+		return db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 
 	q := db.Query{
@@ -160,12 +162,12 @@ func (r repo) Delete(ctx context.Context, id int64) error {
 	res, err := r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
 		log.Println(err)
-		return status.Error(codes.Internal, "Internal server error")
+		return db.Query{}, status.Error(codes.Internal, "Internal server error")
 	}
 	rowCount := res.RowsAffected()
 	log.Printf("удалено строк: %d", rowCount)
 
-	return nil
+	return q, nil
 }
 
 func (r *repo) userExists(ctx context.Context, userID int64) (bool, error) {
@@ -199,4 +201,29 @@ func buildUpdateQuery(user model.UpdateUserRequest) (string, []any, error) {
 		ToSql()
 
 	return query, args, err
+}
+
+func (r repo) CreateLog(ctx context.Context, logger *model.Log) error {
+	query, args, err := sq.Insert(tableName3).
+		PlaceholderFormat(sq.Dollar).
+		Columns(actionColumn, entityColumnID, queryColumn).
+		Values(logger.Action, logger.EntityId, logger.Query).
+		ToSql()
+
+	if err != nil {
+		log.Printf("failed to build query: %v", err)
+		return status.Error(codes.Internal, "Internal server error")
+	}
+
+	q := db.Query{
+		Name:     "log_repository.Create",
+		QueryRow: query,
+	}
+
+	if _, err = r.db.DB().ExecContext(ctx, q, args...); err != nil {
+		log.Printf("failed to create log: %v", err)
+		return status.Error(codes.Internal, "Internal server error")
+	}
+
+	return nil
 }
