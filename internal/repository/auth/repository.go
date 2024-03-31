@@ -231,7 +231,7 @@ func (r repo) CreateLog(ctx context.Context, logger *model.Log) error {
 func (r repo) GetListLog(ctx context.Context, pageNumber uint64, pageSize uint64) ([]*model.Log, error) {
 	offset := (pageNumber - 1) * pageSize
 
-	query, args, err := sq.Select(idColumn, actionColumn, entityColumnID, queryColumn).
+	query, args, err := sq.Select(idColumn, actionColumn, entityColumnID, queryColumn, createdAtColumn, updatedAtColumn).
 		From(tableName3).
 		PlaceholderFormat(sq.Dollar).
 		Limit(pageSize).
