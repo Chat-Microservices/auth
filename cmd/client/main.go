@@ -23,8 +23,7 @@ func getUserByID(ctx context.Context, client desc.AuthV1Client, userID int64) (*
 	if err != nil {
 		return nil, err
 	}
-
-	return response.GetUser(), nil
+	return response, nil
 }
 
 func createUser(ctx context.Context, client desc.AuthV1Client) (*desc.CreateResponse, error) {
