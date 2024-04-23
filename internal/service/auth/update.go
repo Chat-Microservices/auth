@@ -17,6 +17,9 @@ func (s *serv) Update(ctx context.Context, updateUser *model.UpdateUserRequest) 
 		}
 
 		errTx = s.authRepository.CreateLog(ctx, converter.ToAuthLogFromQuery(query, updateUser.ID))
+		if errTx != nil {
+			return errTx
+		}
 
 		return nil
 	})

@@ -18,6 +18,9 @@ func (s *serv) Get(ctx context.Context, id int64) (*model.User, error) {
 		}
 
 		errTx = s.authRepository.CreateLog(ctx, converter.ToAuthLogFromQuery(query, id))
+		if errTx != nil {
+			return errTx
+		}
 
 		return nil
 	})

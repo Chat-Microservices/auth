@@ -16,6 +16,9 @@ func (s *serv) Delete(ctx context.Context, id int64) error {
 		}
 
 		errTx = s.authRepository.CreateLog(ctx, converter.ToAuthLogFromQuery(query, id))
+		if errTx != nil {
+			return errTx
+		}
 
 		return nil
 	})
