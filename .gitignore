@@ -1,4 +1,6 @@
 bin
 .env.local
 .env
-.idea/
+.idea//coverage.out
+/coverage.out
+.idea

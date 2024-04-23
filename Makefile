@@ -36,3 +36,19 @@ generate-auth-api:
 
 build:
 	GOOS=linux GOARCH=amd64 go build -o service_auth cmd/server/main.go
+
+test:
+	go clean -testcache
+	go test github.com/semho/chat-microservices/auth/internal/service/... \
+			github.com/semho/chat-microservices/auth/internal/api/... -covermode count -count 5
+
+
+test-coverage:
+	go clean -testcache
+	go test github.com/semho/chat-microservices/auth/internal/service/... \
+            github.com/semho/chat-microservices/auth/internal/api/... -covermode count -coverprofile=coverage.tmp.out -count 5
+	grep -v 'mocks\|config' coverage.tmp.out  > coverage.out
+	rm coverage.tmp.out
+	go tool cover -html=coverage.out;
+	go tool cover -func=./coverage.out | grep "total";
+	grep -sqFx "/coverage.out" .gitignore || echo "/coverage.out" >> .gitignore
