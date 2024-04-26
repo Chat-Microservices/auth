@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/brianvoe/gofakeit v3.18.0+incompatible
+	github.com/envoyproxy/protoc-gen-validate v1.0.4
 	github.com/fatih/color v1.16.0
 	github.com/georgysavva/scany v1.2.1
 	github.com/gojuno/minimock/v3 v3.3.6

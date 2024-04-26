@@ -5,6 +5,7 @@ package auth_v1;
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
+import "validate/validate.proto";
 
 option go_package = "github.com/semho/chat-microservices/pkg/auth_v1;auth_v1";
 
@@ -40,14 +41,18 @@ enum Role {
 }
 
 message UserPassword {
-  string password = 1;
-  string password_confirm = 2;
+  string password = 1 [(validate.rules).string = {min_len: 5, max_len: 20}];
+  string password_confirm = 2 [(validate.rules).string = {min_len: 5, max_len: 20}];
 }
 
 message UserDetail {
-  string name = 1;
-  string email = 2;
-  optional Role role = 3;
+  string name = 1 [(validate.rules).string = {
+    pattern:   "^[A-Za-z]+( [A-Za-z]+)*$",
+    min_len: 2,
+    max_len: 20
+  }];
+  string email = 2 [(validate.rules).string.email = true];
+  optional Role role = 3  [(validate.rules).enum.defined_only = true];
 }
 
 message User {

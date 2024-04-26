@@ -19,7 +19,11 @@ func (i *Implementation) Create(ctx context.Context, req *desc.CreateRequest) (*
 	}
 
 	log.Printf("User name: %v", req.GetDetail().GetName())
-	id, err := i.authService.Create(ctx, converter.ToAuthDetailFromDesc(req.GetDetail()), req.GetPassword().GetPassword())
+	id, err := i.authService.Create(
+		ctx,
+		converter.ToAuthDetailFromDesc(req.GetDetail()),
+		req.GetPassword().GetPassword(),
+	)
 	if err != nil {
 		return nil, err
 	}

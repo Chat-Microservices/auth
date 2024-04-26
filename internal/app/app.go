@@ -5,6 +5,7 @@ import (
 	"flag"
 	"github.com/semho/chat-microservices/auth/internal/closer"
 	"github.com/semho/chat-microservices/auth/internal/config"
+	"github.com/semho/chat-microservices/auth/internal/interceptor"
 	desc "github.com/semho/chat-microservices/auth/pkg/auth_v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -77,7 +78,10 @@ func (a *App) initServiceProvider(_ context.Context) error {
 }
 
 func (a *App) initGRPCServer(ctx context.Context) error {
-	a.grpcServer = grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
+	a.grpcServer = grpc.NewServer(
+		grpc.Creds(insecure.NewCredentials()),
+		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
+	)
 
 	reflection.Register(a.grpcServer)
 	desc.RegisterAuthV1Server(a.grpcServer, a.servicesProvider.GetAuthImpl(ctx))
