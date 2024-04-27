@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"flag"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/semho/chat-microservices/auth/internal/closer"
 	"github.com/semho/chat-microservices/auth/internal/config"
 	"github.com/semho/chat-microservices/auth/internal/interceptor"
@@ -12,11 +13,14 @@ import (
 	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
+	"net/http"
+	"sync"
 )
 
 type App struct {
 	servicesProvider *serviceProvider
 	grpcServer       *grpc.Server
+	httpServer       *http.Server
 }
 
 func NewApp(ctx context.Context) (*App, error) {
@@ -36,7 +40,30 @@ func (a *App) Run() error {
 		closer.Wait()
 	}()
 
-	return a.runGRPCServer()
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+
+		err := a.runGRPCServer()
+		if err != nil {
+			log.Fatalf("failed to start grpc server: %v", err)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		err := a.runHTTPServer()
+		if err != nil {
+			log.Fatalf("failed to start http server: %v", err)
+		}
+	}()
+
+	wg.Wait()
+
+	return nil
 }
 
 func (a *App) initDeps(ctx context.Context) error {
@@ -44,6 +71,7 @@ func (a *App) initDeps(ctx context.Context) error {
 		a.initConfig,
 		a.initServiceProvider,
 		a.initGRPCServer,
+		a.initHTTPServer,
 	}
 
 	for _, f := range inits {
@@ -98,6 +126,37 @@ func (a *App) runGRPCServer() error {
 	}
 
 	err = a.grpcServer.Serve(list)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) initHTTPServer(ctx context.Context) error {
+	mux := runtime.NewServeMux()
+
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+
+	err := desc.RegisterAuthV1HandlerFromEndpoint(ctx, mux, a.servicesProvider.GRPCConfig().Address(), opts)
+	if err != nil {
+		return err
+	}
+
+	a.httpServer = &http.Server{
+		Addr:    a.servicesProvider.HTTPConfig().Address(),
+		Handler: mux,
+	}
+
+	return nil
+}
+
+func (a *App) runHTTPServer() error {
+	log.Printf("Starting HTTP server on port: %s", a.servicesProvider.HTTPConfig().Address())
+
+	err := a.httpServer.ListenAndServe()
 	if err != nil {
 		return err
 	}
