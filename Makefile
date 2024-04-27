@@ -10,6 +10,8 @@ install-deps:
 	GOBIN=$(LOCAL_BIN) go install github.com/pressly/goose/v3/cmd/goose@v3.14.0
 	GOBIN=$(LOCAL_BIN) go install github.com/envoyproxy/protoc-gen-validate@v0.10.1
 	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.15.2
+	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.15.2
+	GOBIN=$(LOCAL_BIN) go install github.com/rakyll/statik@v0.1.7
 
 local-migration-status:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} status -v
@@ -24,7 +26,9 @@ local-migration-create:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} create init sql
 
 generate:
+	mkdir -p pkg/swagger
 	make generate-auth-api
+	$(LOCAL_BIN)/statik -src=pkg/swagger/ -include='*.css,*.html,*.js,*.json,*.png'
 
 generate-auth-api:
 	mkdir -p pkg/auth_v1
@@ -37,6 +41,8 @@ generate-auth-api:
     	--plugin=protoc-gen-validate=bin/protoc-gen-validate \
     	--grpc-gateway_out=pkg/auth_v1 --grpc-gateway_opt=paths=source_relative \
 		--plugin=protoc-gen-grpc-gateway=bin/protoc-gen-grpc-gateway \
+		--openapiv2_out=allow_merge=true,merge_file_name=api:pkg/swagger \
+		--plugin=protoc-gen-openapiv2=bin/protoc-gen-openapiv2 \
     	api/auth_v1/auth.proto
 
 vendor-proto:
@@ -51,6 +57,12 @@ vendor-proto:
 		mkdir -p  vendor.protogen/google/ &&\
 		mv vendor.protogen/googleapis/google/api vendor.protogen/google &&\
 		rm -rf vendor.protogen/googleapis ;\
+	fi
+	@if [ ! -d vendor.protogen/protoc-gen-openapiv2 ]; then \
+		mkdir -p vendor.protogen/protoc-gen-openapiv2/options &&\
+		git clone https://github.com/grpc-ecosystem/grpc-gateway vendor.protogen/openapiv2 &&\
+		mv vendor.protogen/openapiv2/protoc-gen-openapiv2/options/*.proto vendor.protogen/protoc-gen-openapiv2/options &&\
+		rm -rf vendor.protogen/openapiv2 ;\
 	fi
 build:
 	GOOS=linux GOARCH=amd64 go build -o service_auth cmd/server/main.go
