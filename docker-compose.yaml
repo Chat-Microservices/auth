@@ -18,7 +18,7 @@ services:
       - POSTGRES_PASSWORD=${PG_PASSWORD}
       - POSTGRES_DB=${PG_DATABASE_NAME}
     ports:
-      - "${PG_PORT}:5432"
+      - "54321:5432"
     volumes:
       - pg_vol_auth:/var/lib/postgresql/auth_data
     networks:
@@ -35,4 +35,4 @@ services:
     networks:
       - auth-network
     ports:
-      - "${GRPC_PORT_EXTERNAL}:${GRPC_PORT}"
+      - "50051:50051"
