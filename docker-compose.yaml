@@ -2,6 +2,7 @@ version: '3.7'
 
 volumes:
   pg_vol_auth:
+    external: true
 
 networks:
   auth-network:
