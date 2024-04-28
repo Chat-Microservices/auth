@@ -23,6 +23,7 @@ type PGConfig interface {
 
 type HTTPConfig interface {
 	Address() string
+	IpAddress() string
 }
 
 type SwaggerConfig interface {

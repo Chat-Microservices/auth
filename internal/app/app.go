@@ -207,7 +207,7 @@ func (a *App) initSwaggerServer(_ context.Context) error {
 	mux.Handle("/", http.StripPrefix("/", http.FileServer(statikFs)))
 	mux.HandleFunc(
 		"/api.swagger.json",
-		serveSwaggerFile("/api.swagger.json", a.servicesProvider.HTTPConfig().Address()),
+		serveSwaggerFile("/api.swagger.json", a.servicesProvider.HTTPConfig().IpAddress()),
 	)
 
 	a.swaggerServer = &http.Server{
