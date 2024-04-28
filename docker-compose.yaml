@@ -35,5 +35,3 @@ services:
       - auth-network
     ports:
       - "${GRPC_PORT_EXTERNAL}:${GRPC_PORT}"
-      - "${HTTP_PORT_EXTERNAL}:${HTTP_PORT}"
-      - "${SWAGGER_PORT_EXTERNAL}:${SWAGGER_PORT}"
