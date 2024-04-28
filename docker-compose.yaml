@@ -2,7 +2,6 @@ version: '3.7'
 
 volumes:
   pg_vol_auth:
-    external: true
 
 networks:
   auth-network:
@@ -18,7 +17,7 @@ services:
       - POSTGRES_PASSWORD=${PG_PASSWORD}
       - POSTGRES_DB=${PG_DATABASE_NAME}
     ports:
-      - "54321:5432"
+      - "${PG_PORT}:5432"
     volumes:
       - pg_vol_auth:/var/lib/postgresql/auth_data
     networks:
@@ -35,4 +34,6 @@ services:
     networks:
       - auth-network
     ports:
-      - "50051:50051"
+      - "${GRPC_PORT_EXTERNAL}:${GRPC_PORT}"
+      - "${HTTP_PORT_EXTERNAL}:${HTTP_PORT}"
+      - "${SWAGGER_PORT_EXTERNAL}:${SWAGGER_PORT}"
