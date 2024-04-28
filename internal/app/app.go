@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rakyll/statik/fs"
@@ -204,7 +205,10 @@ func (a *App) initSwaggerServer(_ context.Context) error {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.StripPrefix("/", http.FileServer(statikFs)))
-	mux.HandleFunc("/api.swagger.json", serveSwaggerFile("/api.swagger.json"))
+	mux.HandleFunc(
+		"/api.swagger.json",
+		serveSwaggerFile("/api.swagger.json", a.servicesProvider.HTTPConfig().Address()),
+	)
 
 	a.swaggerServer = &http.Server{
 		Addr:    a.servicesProvider.SwaggerConfig().Address(),
@@ -225,7 +229,7 @@ func (a *App) runSwaggerServer() error {
 	return nil
 }
 
-func serveSwaggerFile(path string) http.HandlerFunc {
+func serveSwaggerFile(path, address string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Serving swagger file: %s", path)
 
@@ -254,8 +258,22 @@ func serveSwaggerFile(path string) http.HandlerFunc {
 
 		log.Printf("Write swagger file: %s", path)
 
+		var data map[string]any
+		err = json.Unmarshal(content, &data)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		data["host"] = address
+
+		modifiedContent, err := json.Marshal(data)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		_, err = w.Write(content)
+		_, err = w.Write(modifiedContent)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
