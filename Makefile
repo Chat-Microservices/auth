@@ -28,6 +28,8 @@ local-migration-create:
 generate:
 	mkdir -p pkg/swagger
 	make generate-auth-api
+	make generate-login-api
+	make generate-access-api
 	$(LOCAL_BIN)/statik -src=pkg/swagger/ -include='*.css,*.html,*.js,*.json,*.png'
 
 generate-auth-api:
@@ -44,6 +46,24 @@ generate-auth-api:
 		--openapiv2_out=allow_merge=true,merge_file_name=api:pkg/swagger \
 		--plugin=protoc-gen-openapiv2=bin/protoc-gen-openapiv2 \
     	api/auth_v1/auth.proto
+
+generate-login-api:
+	mkdir -p pkg/login_v1
+	protoc --proto_path api/login_v1 \
+		--go_out=pkg/login_v1 --go_opt=paths=source_relative \
+		--plugin=protoc-gen-go=./bin/protoc-gen-go \
+		--go-grpc_out=pkg/login_v1 --go-grpc_opt=paths=source_relative \
+		--plugin=protoc-gen-go-grpc=./bin/protoc-gen-go-grpc \
+		api/login_v1/login.proto
+
+generate-access-api:
+	mkdir -p pkg/access_v1
+	protoc --proto_path api/access_v1 \
+		--go_out=pkg/access_v1 --go_opt=paths=source_relative \
+		--plugin=protoc-gen-go=./bin/protoc-gen-go \
+		--go-grpc_out=pkg/access_v1 --go-grpc_opt=paths=source_relative \
+		--plugin=protoc-gen-go-grpc=./bin/protoc-gen-go-grpc \
+		api/access_v1/access.proto
 
 vendor-proto:
 	@if [ ! -d vendor.protogen/validate ]; then \
@@ -82,3 +102,14 @@ test-coverage:
 	go tool cover -html=coverage.out;
 	go tool cover -func=./coverage.out | grep "total";
 	grep -sqFx "/coverage.out" .gitignore || echo "/coverage.out" >> .gitignore
+
+# должны быть в хранилище секретов(volt), а не в директории tls
+gen-cert:
+	mkdir -p tls
+	cd tls && \
+	openssl genrsa -out ca.key 4096 && \
+	openssl req -new -x509 -key ca.key -sha256 -subj "/C=US/ST=NJ/O=CA, Inc." -days 365 -out ca.cert && \
+	openssl genrsa -out service.key 4096 && \
+	openssl req -new -key service.key -out service.csr -config certificate.conf && \
+	openssl x509 -req -in service.csr -CA ca.cert -CAkey ca.key -CAcreateserial \
+		-out service.pem -days 365 -sha256 -extfile certificate.conf -extensions req_ext

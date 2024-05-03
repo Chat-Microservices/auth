@@ -1,4 +1,4 @@
-package authService
+package accessService
 
 import (
 	"github.com/semho/chat-microservices/auth/internal/client/db"
@@ -7,13 +7,13 @@ import (
 )
 
 type serv struct {
-	authRepository repository.AuthRepository
-	txManager      db.TxManager
+	accessRepository repository.AccessRepository
+	txManager        db.TxManager
 }
 
-func NewService(authRepository repository.AuthRepository, txManager db.TxManager) service.AuthService {
+func NewService(accessRepository repository.AccessRepository, txManager db.TxManager) service.AccessService {
 	return &serv{
-		authRepository: authRepository,
-		txManager:      txManager,
+		accessRepository: accessRepository,
+		txManager:        txManager,
 	}
 }

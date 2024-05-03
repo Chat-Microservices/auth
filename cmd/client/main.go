@@ -6,16 +6,19 @@ import (
 	"github.com/fatih/color"
 	desc "github.com/semho/chat-microservices/auth/pkg/auth_v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 )
 
 const (
 	address = "localhost:50051"
-	userID  = 12
+	userID  = 1
 )
 
 func getUserByID(ctx context.Context, client desc.AuthV1Client, userID int64) (*desc.UserResponse, error) {
@@ -72,7 +75,26 @@ func deleteUserByID(ctx context.Context, client desc.AuthV1Client, userID int64)
 	return response, nil
 }
 
+func credsService() credentials.TransportCredentials {
+	//Получаем текущую директорию
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal("Ошибка при получении текущей директории:", err)
+	}
+
+	certFile := filepath.Join(dir, "tls", "service.pem")
+
+	creds, err := credentials.NewClientTLSFromFile(certFile, "")
+	if err != nil {
+		log.Fatalf("failed to load credentials: %v", err)
+	}
+
+	return creds
+}
+
 func main() {
+
+	//conn, err := grpc.Dial(address, grpc.WithTransportCredentials(credsService()))
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("failed to connect to server: %v", err)
@@ -84,10 +106,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	//r, err := getUserByID(ctx, c, userID)
+	r, err := getUserByID(ctx, c, userID)
 	//r, err := createUser(ctx, c)
 	//r, err := updateUserByID(ctx, c, userID)
-	r, err := deleteUserByID(ctx, c, userID)
+	//r, err := deleteUserByID(ctx, c, userID)
 	if err != nil {
 		log.Fatalf("failed to get user by id: %v", err)
 	}

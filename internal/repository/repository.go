@@ -14,3 +14,13 @@ type AuthRepository interface {
 	CreateLog(ctx context.Context, logger *model.Log) error
 	GetListLog(ctx context.Context, pageNumber uint64, pageSize uint64) ([]*model.Log, error)
 }
+
+type LoginRepository interface {
+	Login(ctx context.Context, username string, password string) (*model.User, error)
+	GetRefreshToken(ctx context.Context, refreshToken string) (string, error)
+	GetAccessToken(ctx context.Context, refreshToken string) (string, error)
+}
+
+type AccessRepository interface {
+	Check(ctx context.Context, endpoint string) error
+}

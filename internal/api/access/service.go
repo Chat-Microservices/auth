@@ -1,17 +1,17 @@
-package loginAPI
+package accessAPI
 
 import (
 	"github.com/semho/chat-microservices/auth/internal/service"
-	desc "github.com/semho/chat-microservices/auth/pkg/login_v1"
+	desc "github.com/semho/chat-microservices/auth/pkg/access_v1"
 )
 
 type Implementation struct {
-	desc.UnimplementedLoginV1Server
-	loginService service.LoginService
+	desc.UnimplementedAccessV1Server
+	accessService service.AccessService
 }
 
-func NewImplementation(loginService service.LoginService) *Implementation {
+func NewImplementation(accessService service.AccessService) *Implementation {
 	return &Implementation{
-		loginService: loginService,
+		accessService: accessService,
 	}
 }

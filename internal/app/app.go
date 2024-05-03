@@ -10,15 +10,20 @@ import (
 	"github.com/semho/chat-microservices/auth/internal/closer"
 	"github.com/semho/chat-microservices/auth/internal/config"
 	"github.com/semho/chat-microservices/auth/internal/interceptor"
-	desc "github.com/semho/chat-microservices/auth/pkg/auth_v1"
+	descAccess "github.com/semho/chat-microservices/auth/pkg/access_v1"
+	descAuth "github.com/semho/chat-microservices/auth/pkg/auth_v1"
+	descLogin "github.com/semho/chat-microservices/auth/pkg/login_v1"
 	_ "github.com/semho/chat-microservices/auth/statik"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -124,13 +129,34 @@ func (a *App) initServiceProvider(_ context.Context) error {
 func (a *App) initGRPCServer(ctx context.Context) error {
 	a.grpcServer = grpc.NewServer(
 		grpc.Creds(insecure.NewCredentials()),
+		//grpc.Creds(credsService()),
 		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
 	)
 
 	reflection.Register(a.grpcServer)
-	desc.RegisterAuthV1Server(a.grpcServer, a.servicesProvider.GetAuthImpl(ctx))
+	descAuth.RegisterAuthV1Server(a.grpcServer, a.servicesProvider.GetAuthImpl(ctx))
+	descLogin.RegisterLoginV1Server(a.grpcServer, a.servicesProvider.GetLoginImpl(ctx))
+	descAccess.RegisterAccessV1Server(a.grpcServer, a.servicesProvider.GetAccessImpl(ctx))
 
 	return nil
+}
+
+func credsService() credentials.TransportCredentials {
+	//Получаем текущую директорию
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("failed to get working dir: %v", err)
+	}
+
+	certFile := filepath.Join(dir, "tls", "service.pem")
+	certKey := filepath.Join(dir, "tls", "service.key")
+
+	creds, err := credentials.NewServerTLSFromFile(certFile, certKey)
+	if err != nil {
+		log.Fatalf("failed to load certificates: %v", err)
+	}
+
+	return creds
 }
 
 func (a *App) runGRPCServer() error {
@@ -156,7 +182,7 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	err := desc.RegisterAuthV1HandlerFromEndpoint(ctx, mux, a.servicesProvider.GRPCConfig().Address(), opts)
+	err := descAuth.RegisterAuthV1HandlerFromEndpoint(ctx, mux, a.servicesProvider.GRPCConfig().Address(), opts)
 	if err != nil {
 		return err
 	}

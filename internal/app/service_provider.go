@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	accessAPI "github.com/semho/chat-microservices/auth/internal/api/access"
 	authAPI "github.com/semho/chat-microservices/auth/internal/api/auth"
+	loginAPI "github.com/semho/chat-microservices/auth/internal/api/login"
 	"github.com/semho/chat-microservices/auth/internal/client/db"
 	"github.com/semho/chat-microservices/auth/internal/client/db/pg"
 	"github.com/semho/chat-microservices/auth/internal/client/db/transaction"
@@ -10,9 +12,13 @@ import (
 	"github.com/semho/chat-microservices/auth/internal/config"
 	"github.com/semho/chat-microservices/auth/internal/config/env"
 	"github.com/semho/chat-microservices/auth/internal/repository"
+	accessRepository "github.com/semho/chat-microservices/auth/internal/repository/access"
 	authRepository "github.com/semho/chat-microservices/auth/internal/repository/auth"
+	loginRepository "github.com/semho/chat-microservices/auth/internal/repository/login"
 	"github.com/semho/chat-microservices/auth/internal/service"
+	accessService "github.com/semho/chat-microservices/auth/internal/service/access"
 	authService "github.com/semho/chat-microservices/auth/internal/service/auth"
+	loginService "github.com/semho/chat-microservices/auth/internal/service/login"
 	"log"
 )
 
@@ -22,13 +28,19 @@ type serviceProvider struct {
 	httpConfig    config.HTTPConfig
 	swaggerConfig config.SwaggerConfig
 
-	dbClient       db.Client
-	txManger       db.TxManager
-	authRepository repository.AuthRepository
+	dbClient         db.Client
+	txManger         db.TxManager
+	authRepository   repository.AuthRepository
+	loginRepository  repository.LoginRepository
+	accessRepository repository.AccessRepository
 
-	authService service.AuthService
+	authService   service.AuthService
+	loginService  service.LoginService
+	accessService service.AccessService
 
-	authImpl *authAPI.Implementation
+	authImpl   *authAPI.Implementation
+	loginImpl  *loginAPI.Implementation
+	accessImpl *accessAPI.Implementation
 }
 
 func newServiceProvider() *serviceProvider {
@@ -137,4 +149,52 @@ func (s *serviceProvider) GetAuthImpl(ctx context.Context) *authAPI.Implementati
 	}
 
 	return s.authImpl
+}
+
+func (s *serviceProvider) GetLoginRepository(ctx context.Context) repository.LoginRepository {
+	if s.loginRepository == nil {
+		s.loginRepository = loginRepository.NewRepository(s.GetDBClient(ctx))
+	}
+
+	return s.loginRepository
+}
+
+func (s *serviceProvider) GetLoginService(ctx context.Context) service.LoginService {
+	if s.loginService == nil {
+		s.loginService = loginService.NewService(s.GetLoginRepository(ctx), s.GetTxManager(ctx))
+	}
+
+	return s.loginService
+}
+
+func (s *serviceProvider) GetLoginImpl(ctx context.Context) *loginAPI.Implementation {
+	if s.loginImpl == nil {
+		s.loginImpl = loginAPI.NewImplementation(s.GetLoginService(ctx))
+	}
+
+	return s.loginImpl
+}
+
+func (s *serviceProvider) GetAccessRepository(ctx context.Context) repository.AccessRepository {
+	if s.accessRepository == nil {
+		s.accessRepository = accessRepository.NewRepository(s.GetDBClient(ctx))
+	}
+
+	return s.accessRepository
+}
+
+func (s *serviceProvider) GetAccessService(ctx context.Context) service.AccessService {
+	if s.accessService == nil {
+		s.accessService = accessService.NewService(s.GetAccessRepository(ctx), s.GetTxManager(ctx))
+	}
+
+	return s.accessService
+}
+
+func (s *serviceProvider) GetAccessImpl(ctx context.Context) *accessAPI.Implementation {
+	if s.accessImpl == nil {
+		s.accessImpl = accessAPI.NewImplementation(s.GetAccessService(ctx))
+	}
+
+	return s.accessImpl
 }
