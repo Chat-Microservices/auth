@@ -10,8 +10,8 @@ func (i *Implementation) GetRefreshToken(
 	ctx context.Context,
 	req *desc.GetRefreshTokenRequest,
 ) (*desc.GetRefreshTokenResponse, error) {
-	log.Printf("refresh token: %s", req.GetRefreshToken())
-	refreshToken, err := i.loginService.GetRefreshToken(ctx, req.GetRefreshToken())
+	log.Printf("refresh token: %s", req.GetOldRefreshToken())
+	refreshToken, err := i.loginService.GetRefreshToken(ctx, req.GetOldRefreshToken())
 	if err != nil {
 		return nil, err
 	}
