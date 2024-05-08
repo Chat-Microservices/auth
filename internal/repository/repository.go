@@ -16,11 +16,9 @@ type AuthRepository interface {
 }
 
 type LoginRepository interface {
-	Login(ctx context.Context, username string, password string) (*model.User, error)
-	GetRefreshToken(ctx context.Context, refreshToken string) (string, error)
-	GetAccessToken(ctx context.Context, refreshToken string) (string, error)
+	GetUserByUsername(ctx context.Context, username string) (*model.User, error)
 }
 
 type AccessRepository interface {
-	Check(ctx context.Context, endpoint string) error
+	AccessibleRoles(ctx context.Context) (map[string]int, error)
 }

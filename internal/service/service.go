@@ -21,4 +21,5 @@ type LoginService interface {
 
 type AccessService interface {
 	Check(ctx context.Context, endpoint string) error
+	AccessibleRoles(ctx context.Context) (map[string]int, error)
 }

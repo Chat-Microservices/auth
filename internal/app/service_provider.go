@@ -27,6 +27,7 @@ type serviceProvider struct {
 	grpcConfig    config.GRPCConfig
 	httpConfig    config.HTTPConfig
 	swaggerConfig config.SwaggerConfig
+	tokenConfig   config.TokenConfig
 
 	dbClient         db.Client
 	txManger         db.TxManager
@@ -99,6 +100,19 @@ func (s *serviceProvider) SwaggerConfig() config.SwaggerConfig {
 	return s.swaggerConfig
 }
 
+func (s *serviceProvider) TokenConfig() config.TokenConfig {
+	if s.tokenConfig == nil {
+		cfg, err := env.NewTokenConfig()
+		if err != nil {
+			log.Fatalf("failed to get token config: %v", err)
+		}
+
+		s.tokenConfig = cfg
+	}
+
+	return s.tokenConfig
+}
+
 func (s *serviceProvider) GetDBClient(ctx context.Context) db.Client {
 	if s.dbClient == nil {
 		cl, err := pg.New(ctx, s.GetPGConfig().DSN())
@@ -161,7 +175,7 @@ func (s *serviceProvider) GetLoginRepository(ctx context.Context) repository.Log
 
 func (s *serviceProvider) GetLoginService(ctx context.Context) service.LoginService {
 	if s.loginService == nil {
-		s.loginService = loginService.NewService(s.GetLoginRepository(ctx), s.GetTxManager(ctx))
+		s.loginService = loginService.NewService(s.GetLoginRepository(ctx), s.GetTxManager(ctx), s.tokenConfig)
 	}
 
 	return s.loginService
@@ -185,7 +199,7 @@ func (s *serviceProvider) GetAccessRepository(ctx context.Context) repository.Ac
 
 func (s *serviceProvider) GetAccessService(ctx context.Context) service.AccessService {
 	if s.accessService == nil {
-		s.accessService = accessService.NewService(s.GetAccessRepository(ctx), s.GetTxManager(ctx))
+		s.accessService = accessService.NewService(s.GetAccessRepository(ctx), s.GetTxManager(ctx), s.tokenConfig)
 	}
 
 	return s.accessService

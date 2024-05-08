@@ -90,6 +90,7 @@ func (a *App) initDeps(ctx context.Context) error {
 	inits := []func(context.Context) error{
 		a.initConfig,
 		a.initServiceProvider,
+		a.initTokenConfig,
 		a.initGRPCServer,
 		a.initHTTPServer,
 		a.initSwaggerServer,
@@ -123,6 +124,11 @@ func (a *App) initConfig(_ context.Context) error {
 
 func (a *App) initServiceProvider(_ context.Context) error {
 	a.servicesProvider = newServiceProvider()
+	return nil
+}
+
+func (a *App) initTokenConfig(_ context.Context) error {
+	a.servicesProvider.TokenConfig()
 	return nil
 }
 

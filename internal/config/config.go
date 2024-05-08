@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/joho/godotenv"
+	"time"
 )
 
 func Load(path string) error {
@@ -28,4 +29,10 @@ type HTTPConfig interface {
 
 type SwaggerConfig interface {
 	Address() string
+}
+
+type TokenConfig interface {
+	Prefix() string
+	RefreshData() (string, time.Duration)
+	AccessData() (string, time.Duration)
 }
