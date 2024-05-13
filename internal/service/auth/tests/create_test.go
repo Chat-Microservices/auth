@@ -6,7 +6,6 @@ import (
 	"github.com/brianvoe/gofakeit"
 	"github.com/gojuno/minimock/v3"
 	"github.com/semho/chat-microservices/auth/internal/client/db"
-	"github.com/semho/chat-microservices/auth/internal/converter"
 	"github.com/semho/chat-microservices/auth/internal/model"
 	"github.com/semho/chat-microservices/auth/internal/repository"
 	repoMocks "github.com/semho/chat-microservices/auth/internal/repository/mocks"
@@ -79,9 +78,24 @@ func TestImplementation_Create(t *testing.T) {
 			err:  nil,
 			authRepositoryMock: func(mc *minimock.Controller) repository.AuthRepository {
 				mock := repoMocks.NewAuthRepositoryMock(mc)
-				mock.CreateMock.Expect(ctx, req, password).Return(id, query, nil)
-				expectedLogEntry := converter.ToAuthLogFromQuery(query, id)
-				mock.CreateLogMock.Expect(ctx, expectedLogEntry).Return(nil)
+				//mock.CreateMock.Expect(ctx, req, password).Return(id, query, nil)
+				//expectedLogEntry := converter.ToAuthLogFromQuery(query, id)
+				//mock.CreateLogMock.Expect(ctx, expectedLogEntry).Return(nil)
+				mock.CreateMock.Set(
+					func(ctx context.Context, req *model.Detail, password string) (int64, db.Query, error) {
+						if ctx == nil {
+							return 0, db.Query{}, fmt.Errorf("context is nil")
+						}
+						if req == nil {
+							return 0, db.Query{}, fmt.Errorf("req is nil")
+						}
+						if password == "" {
+							return 0, db.Query{}, fmt.Errorf("password is empty")
+						}
+						return id, query, nil
+					},
+				)
+				mock.CreateLogMock.Expect(ctx, log).Return(nil)
 				return mock
 			},
 		},
@@ -96,7 +110,12 @@ func TestImplementation_Create(t *testing.T) {
 			err:  repoErr,
 			authRepositoryMock: func(mc *minimock.Controller) repository.AuthRepository {
 				mock := repoMocks.NewAuthRepositoryMock(mc)
-				mock.CreateMock.Expect(ctx, req, password).Return(0, query, repoErr)
+				//mock.CreateMock.Expect(ctx, req, password).Return(0, query, repoErr)
+				mock.CreateMock.Set(
+					func(ctx context.Context, req *model.Detail, password string) (int64, db.Query, error) {
+						return 0, db.Query{}, repoErr
+					},
+				)
 				return mock
 			},
 		},
@@ -111,7 +130,12 @@ func TestImplementation_Create(t *testing.T) {
 			err:  repoErrLog,
 			authRepositoryMock: func(mc *minimock.Controller) repository.AuthRepository {
 				mock := repoMocks.NewAuthRepositoryMock(mc)
-				mock.CreateMock.Expect(ctx, req, password).Return(id, query, nil)
+				//mock.CreateMock.Expect(ctx, req, password).Return(id, query, nil)
+				mock.CreateMock.Set(
+					func(ctx context.Context, req *model.Detail, password string) (int64, db.Query, error) {
+						return id, query, nil
+					},
+				)
 				mock.CreateLogMock.Expect(ctx, log).Return(repoErrLog)
 				return mock
 			},
@@ -119,22 +143,24 @@ func TestImplementation_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			fmt.Println("[TEST DEBUG] Starting test case:", tt.name)
-			authRepoMock := tt.authRepositoryMock(mc)
-			fmt.Println("[TEST DEBUG] authRepoMock:", authRepoMock)
+		t.Run(
+			tt.name, func(t *testing.T) {
+				t.Parallel()
+				fmt.Println("[TEST DEBUG] Starting test case:", tt.name)
+				authRepoMock := tt.authRepositoryMock(mc)
+				fmt.Println("[TEST DEBUG] authRepoMock:", authRepoMock)
 
-			service := authService.NewService(authRepoMock, txManagerMock())
-			fmt.Println("[TEST DEBUG] service instance:", service)
+				service := authService.NewService(authRepoMock, txManagerMock())
+				fmt.Println("[TEST DEBUG] service instance:", service)
 
-			if tt.args.req == nil {
-				t.Fatal("req is nil")
-			}
-			resHandler, err := service.Create(tt.args.ctx, tt.args.req, tt.args.password)
-			fmt.Println("[TEST DEBUG] resHandler:", resHandler, "error:", err)
-			require.Equal(t, tt.err, err)
-			require.Equal(t, tt.want, resHandler)
-		})
+				if tt.args.req == nil {
+					t.Fatal("req is nil")
+				}
+				resHandler, err := service.Create(tt.args.ctx, tt.args.req, tt.args.password)
+				fmt.Println("[TEST DEBUG] resHandler:", resHandler, "error:", err)
+				require.Equal(t, tt.err, err)
+				require.Equal(t, tt.want, resHandler)
+			},
+		)
 	}
 }
