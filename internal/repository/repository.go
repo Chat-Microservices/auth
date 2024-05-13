@@ -21,4 +21,8 @@ type LoginRepository interface {
 
 type AccessRepository interface {
 	AccessibleRoles(ctx context.Context) (map[string]int, error)
+	GetListAccess(ctx context.Context, pageNumber uint64, pageSize uint64) ([]*model.Access, error)
+	CreateAccess(ctx context.Context, roleId int, path string) (int64, error)
+	DeleteAccess(ctx context.Context, id int64) error
+	UpdateAccess(ctx context.Context, access *model.Access) error
 }

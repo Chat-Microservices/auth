@@ -24,6 +24,10 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AccessV1Client interface {
 	Check(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetListAccess(ctx context.Context, in *GetListAccessRequest, opts ...grpc.CallOption) (*ListAccessResponse, error)
+	CreateAccess(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error)
+	DeleteAccess(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UpdateAccess(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type accessV1Client struct {
@@ -43,11 +47,51 @@ func (c *accessV1Client) Check(ctx context.Context, in *CheckRequest, opts ...gr
 	return out, nil
 }
 
+func (c *accessV1Client) GetListAccess(ctx context.Context, in *GetListAccessRequest, opts ...grpc.CallOption) (*ListAccessResponse, error) {
+	out := new(ListAccessResponse)
+	err := c.cc.Invoke(ctx, "/access_v1.AccessV1/GetListAccess", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accessV1Client) CreateAccess(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error) {
+	out := new(CreateResponse)
+	err := c.cc.Invoke(ctx, "/access_v1.AccessV1/CreateAccess", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accessV1Client) DeleteAccess(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/access_v1.AccessV1/DeleteAccess", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accessV1Client) UpdateAccess(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/access_v1.AccessV1/UpdateAccess", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AccessV1Server is the server API for AccessV1 service.
 // All implementations must embed UnimplementedAccessV1Server
 // for forward compatibility
 type AccessV1Server interface {
 	Check(context.Context, *CheckRequest) (*emptypb.Empty, error)
+	GetListAccess(context.Context, *GetListAccessRequest) (*ListAccessResponse, error)
+	CreateAccess(context.Context, *CreateRequest) (*CreateResponse, error)
+	DeleteAccess(context.Context, *DeleteRequest) (*emptypb.Empty, error)
+	UpdateAccess(context.Context, *UpdateRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedAccessV1Server()
 }
 
@@ -57,6 +101,18 @@ type UnimplementedAccessV1Server struct {
 
 func (UnimplementedAccessV1Server) Check(context.Context, *CheckRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
+}
+func (UnimplementedAccessV1Server) GetListAccess(context.Context, *GetListAccessRequest) (*ListAccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetListAccess not implemented")
+}
+func (UnimplementedAccessV1Server) CreateAccess(context.Context, *CreateRequest) (*CreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateAccess not implemented")
+}
+func (UnimplementedAccessV1Server) DeleteAccess(context.Context, *DeleteRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteAccess not implemented")
+}
+func (UnimplementedAccessV1Server) UpdateAccess(context.Context, *UpdateRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateAccess not implemented")
 }
 func (UnimplementedAccessV1Server) mustEmbedUnimplementedAccessV1Server() {}
 
@@ -89,6 +145,78 @@ func _AccessV1_Check_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AccessV1_GetListAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetListAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccessV1Server).GetListAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/access_v1.AccessV1/GetListAccess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccessV1Server).GetListAccess(ctx, req.(*GetListAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccessV1_CreateAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccessV1Server).CreateAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/access_v1.AccessV1/CreateAccess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccessV1Server).CreateAccess(ctx, req.(*CreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccessV1_DeleteAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccessV1Server).DeleteAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/access_v1.AccessV1/DeleteAccess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccessV1Server).DeleteAccess(ctx, req.(*DeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccessV1_UpdateAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccessV1Server).UpdateAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/access_v1.AccessV1/UpdateAccess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccessV1Server).UpdateAccess(ctx, req.(*UpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AccessV1_ServiceDesc is the grpc.ServiceDesc for AccessV1 service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -99,6 +227,22 @@ var AccessV1_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Check",
 			Handler:    _AccessV1_Check_Handler,
+		},
+		{
+			MethodName: "GetListAccess",
+			Handler:    _AccessV1_GetListAccess_Handler,
+		},
+		{
+			MethodName: "CreateAccess",
+			Handler:    _AccessV1_CreateAccess_Handler,
+		},
+		{
+			MethodName: "DeleteAccess",
+			Handler:    _AccessV1_DeleteAccess_Handler,
+		},
+		{
+			MethodName: "UpdateAccess",
+			Handler:    _AccessV1_UpdateAccess_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

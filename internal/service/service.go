@@ -22,4 +22,8 @@ type LoginService interface {
 type AccessService interface {
 	Check(ctx context.Context, endpoint string) error
 	AccessibleRoles(ctx context.Context) (map[string]int, error)
+	GetListAccess(ctx context.Context, pageNumber uint64, pageSize uint64) ([]*model.Access, error)
+	CreateAccess(ctx context.Context, access *model.Access) (int64, error)
+	DeleteAccess(ctx context.Context, id int64) error
+	UpdateAccess(ctx context.Context, access *model.Access) error
 }
