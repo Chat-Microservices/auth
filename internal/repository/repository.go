@@ -14,3 +14,15 @@ type AuthRepository interface {
 	CreateLog(ctx context.Context, logger *model.Log) error
 	GetListLog(ctx context.Context, pageNumber uint64, pageSize uint64) ([]*model.Log, error)
 }
+
+type LoginRepository interface {
+	GetUserByUsername(ctx context.Context, username string) (*model.User, error)
+}
+
+type AccessRepository interface {
+	AccessibleRoles(ctx context.Context) (map[string]int, error)
+	GetListAccess(ctx context.Context, pageNumber uint64, pageSize uint64) ([]*model.Access, error)
+	CreateAccess(ctx context.Context, roleId int, path string) (int64, error)
+	DeleteAccess(ctx context.Context, id int64) error
+	UpdateAccess(ctx context.Context, access *model.Access) error
+}

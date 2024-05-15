@@ -12,3 +12,18 @@ type AuthService interface {
 	Delete(ctx context.Context, id int64) error
 	GetListLogs(ctx context.Context, pageNumber uint64, pageSize uint64) ([]*model.Log, error)
 }
+
+type LoginService interface {
+	Login(ctx context.Context, username, password string) (string, error)
+	GetRefreshToken(ctx context.Context, refreshToken string) (string, error)
+	GetAccessToken(ctx context.Context, refreshToken string) (string, error)
+}
+
+type AccessService interface {
+	Check(ctx context.Context, endpoint string) error
+	AccessibleRoles(ctx context.Context) (map[string]int, error)
+	GetListAccess(ctx context.Context, pageNumber uint64, pageSize uint64) ([]*model.Access, error)
+	CreateAccess(ctx context.Context, access *model.Access) (int64, error)
+	DeleteAccess(ctx context.Context, id int64) error
+	UpdateAccess(ctx context.Context, access *model.Access) error
+}

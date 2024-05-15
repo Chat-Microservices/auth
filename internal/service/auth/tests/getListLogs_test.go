@@ -71,7 +71,7 @@ func Test_serv_GetListLogs(t *testing.T) {
 			},
 		},
 		{
-			name: "success case",
+			name: "error case",
 			args: args{
 				ctx:        ctx,
 				pageNumber: int64(pageNumber),
@@ -88,14 +88,20 @@ func Test_serv_GetListLogs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			authRepoMock := tt.authRepositoryMock(mc)
-			service := authService.NewService(authRepoMock, txManagerMock())
+		t.Run(
+			tt.name, func(t *testing.T) {
+				t.Parallel()
+				authRepoMock := tt.authRepositoryMock(mc)
+				service := authService.NewService(authRepoMock, txManagerMock())
 
-			resHandler, err := service.GetListLogs(tt.args.ctx, uint64(tt.args.pageNumber), uint64(tt.args.pageSize))
-			require.Equal(t, tt.err, err)
-			require.Equal(t, tt.want, resHandler)
-		})
+				resHandler, err := service.GetListLogs(
+					tt.args.ctx,
+					uint64(tt.args.pageNumber),
+					uint64(tt.args.pageSize),
+				)
+				require.Equal(t, tt.err, err)
+				require.Equal(t, tt.want, resHandler)
+			},
+		)
 	}
 }

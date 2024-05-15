@@ -8,6 +8,7 @@ import (
 func ToUserFromRepo(user *modelRepo.User) *model.User {
 	return &model.User{
 		ID:        user.ID,
+		Password:  user.Password,
 		Detail:    ToUserDetailFromRepo(user.Detail),
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
