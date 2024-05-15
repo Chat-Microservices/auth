@@ -15,7 +15,7 @@ func (i *Implementation) CreateAccess(ctx context.Context, req *desc.CreateReque
 ) {
 	log.Printf("create access")
 
-	if req.GetRoleId().Enum() == nil || req.GetPath() == "" {
+	if req.GetRoleId() == 0 || req.GetPath() == "" {
 		return nil, status.Error(codes.InvalidArgument, "Invalid request: Role and Path must be provided")
 	}
 
