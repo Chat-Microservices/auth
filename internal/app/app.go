@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/cors"
 	"github.com/semho/chat-microservices/auth/internal/closer"
 	"github.com/semho/chat-microservices/auth/internal/config"
 	"github.com/semho/chat-microservices/auth/internal/interceptor"
+	"github.com/semho/chat-microservices/auth/internal/logger"
 	descAccess "github.com/semho/chat-microservices/auth/pkg/access_v1"
 	descAuth "github.com/semho/chat-microservices/auth/pkg/auth_v1"
 	descLogin "github.com/semho/chat-microservices/auth/pkg/login_v1"
@@ -89,6 +91,7 @@ func (a *App) Run() error {
 func (a *App) initDeps(ctx context.Context) error {
 	inits := []func(context.Context) error{
 		a.initConfig,
+		a.InitLogger,
 		a.initServiceProvider,
 		a.initTokenConfig,
 		a.initGRPCServer,
@@ -107,14 +110,26 @@ func (a *App) initDeps(ctx context.Context) error {
 }
 
 var configPath string
+var logLevel string
 
 func init() {
 	flag.StringVar(&configPath, "config-path", ".env", "path to config file")
+	flag.StringVar(&logLevel, "l", "info", "log level")
 }
 
 func (a *App) initConfig(_ context.Context) error {
 	flag.Parse()
 	err := config.Load(configPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) InitLogger(_ context.Context) error {
+	flag.Parse()
+	err := logger.InitDefault(logLevel)
 	if err != nil {
 		return err
 	}
@@ -136,7 +151,12 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	a.grpcServer = grpc.NewServer(
 		grpc.Creds(insecure.NewCredentials()),
 		//grpc.Creds(credsService()),
-		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
+		grpc.UnaryInterceptor(
+			grpcMiddleware.ChainUnaryServer(
+				interceptor.LogInterceptor,
+				interceptor.ValidateInterceptor,
+			),
+		),
 	)
 
 	reflection.Register(a.grpcServer)

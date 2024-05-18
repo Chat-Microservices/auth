@@ -3,10 +3,11 @@ package authAPI
 import (
 	"context"
 	"github.com/semho/chat-microservices/auth/internal/converter"
+	"github.com/semho/chat-microservices/auth/internal/logger"
 	desc "github.com/semho/chat-microservices/auth/pkg/auth_v1"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"log"
 )
 
 func (i *Implementation) Create(ctx context.Context, req *desc.CreateRequest) (*desc.CreateResponse, error) {
@@ -18,7 +19,7 @@ func (i *Implementation) Create(ctx context.Context, req *desc.CreateRequest) (*
 		return nil, status.Error(codes.InvalidArgument, "Password and Password Confirm do not match")
 	}
 
-	log.Printf("User name: %v", req.GetDetail().GetName())
+	logger.Info("Create with username:", zap.String("username", req.GetDetail().GetName()))
 	id, err := i.authService.Create(
 		ctx,
 		converter.ToAuthDetailFromDesc(req.GetDetail()),
@@ -28,7 +29,7 @@ func (i *Implementation) Create(ctx context.Context, req *desc.CreateRequest) (*
 		return nil, err
 	}
 
-	log.Printf("inserted user with id: %d", id)
+	logger.Info("Created user with id:", zap.Int64("id", id))
 
 	return &desc.CreateResponse{
 		Id: id,
