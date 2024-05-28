@@ -2,13 +2,14 @@ package accessAPI
 
 import (
 	"context"
+	"github.com/semho/chat-microservices/auth/internal/logger"
 	desc "github.com/semho/chat-microservices/auth/pkg/access_v1"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"log"
 )
 
 func (i *Implementation) Check(ctx context.Context, req *desc.CheckRequest) (*emptypb.Empty, error) {
-	log.Printf("endpoint: %s", req.GetEndpointAddress())
+	logger.Info("endpoint:", zap.String("endpoint", req.GetEndpointAddress()))
 	err := i.accessService.Check(ctx, req.GetEndpointAddress())
 	if err != nil {
 		return nil, err

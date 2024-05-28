@@ -1,0 +1,7 @@
+- targets: [ "localhost:9090" ] #при деплое 0.0.0.0, пример [ "0.0.0.0:9090" ]
+  labels:
+    job: "prometheus"
+
+- targets: [ "localhost:2112" ] #при деплое указать имя контейнера, пример [ "auth:2112" ]
+  labels:
+    job:  "app"

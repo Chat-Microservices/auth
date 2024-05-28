@@ -5,3 +5,5 @@ bin
 /coverage.out
 .idea
 vendor.protogen
+logs
+.target_exporter.yml
