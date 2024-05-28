@@ -4,16 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
+	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/opentracing/opentracing-go"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/cors"
 	"github.com/semho/chat-microservices/auth/internal/closer"
 	"github.com/semho/chat-microservices/auth/internal/config"
 	"github.com/semho/chat-microservices/auth/internal/interceptor"
+	"github.com/semho/chat-microservices/auth/internal/logger"
+	"github.com/semho/chat-microservices/auth/internal/metric"
+	"github.com/semho/chat-microservices/auth/internal/tracing"
 	descAccess "github.com/semho/chat-microservices/auth/pkg/access_v1"
 	descAuth "github.com/semho/chat-microservices/auth/pkg/auth_v1"
 	descLogin "github.com/semho/chat-microservices/auth/pkg/login_v1"
 	_ "github.com/semho/chat-microservices/auth/statik"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -32,6 +41,7 @@ type App struct {
 	grpcServer       *grpc.Server
 	httpServer       *http.Server
 	swaggerServer    *http.Server
+	prometheusServer *http.Server
 }
 
 func NewApp(ctx context.Context) (*App, error) {
@@ -59,7 +69,9 @@ func (a *App) Run() error {
 
 		err := a.runGRPCServer()
 		if err != nil {
-			log.Fatalf("failed to start grpc server: %v", err)
+			logger.Fatal(
+				"failed to start grpc server: ", zap.Error(err),
+			)
 		}
 	}()
 
@@ -68,7 +80,9 @@ func (a *App) Run() error {
 
 		err := a.runHTTPServer()
 		if err != nil {
-			log.Fatalf("failed to start http server: %v", err)
+			logger.Fatal(
+				"failed to http swagger server: ", zap.Error(err),
+			)
 		}
 	}()
 
@@ -77,7 +91,20 @@ func (a *App) Run() error {
 
 		err := a.runSwaggerServer()
 		if err != nil {
-			log.Fatalf("failed to start swagger server: %v", err)
+			logger.Fatal(
+				"failed to start swagger server: ", zap.Error(err),
+			)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		err := a.runPrometheusServer()
+		if err != nil {
+			logger.Fatal(
+				"failed to start prometheus server: ", zap.Error(err),
+			)
 		}
 	}()
 
@@ -89,11 +116,14 @@ func (a *App) Run() error {
 func (a *App) initDeps(ctx context.Context) error {
 	inits := []func(context.Context) error{
 		a.initConfig,
+		a.InitLogger,
+		a.InitMetrics,
 		a.initServiceProvider,
 		a.initTokenConfig,
 		a.initGRPCServer,
 		a.initHTTPServer,
 		a.initSwaggerServer,
+		a.initPrometheusServer,
 	}
 
 	for _, f := range inits {
@@ -107,14 +137,35 @@ func (a *App) initDeps(ctx context.Context) error {
 }
 
 var configPath string
+var logLevel string
 
 func init() {
 	flag.StringVar(&configPath, "config-path", ".env", "path to config file")
+	flag.StringVar(&logLevel, "l", "info", "log level")
 }
 
 func (a *App) initConfig(_ context.Context) error {
 	flag.Parse()
 	err := config.Load(configPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) InitLogger(_ context.Context) error {
+	flag.Parse()
+	err := logger.InitDefault(logLevel)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) InitMetrics(ctx context.Context) error {
+	err := metric.Init(ctx)
 	if err != nil {
 		return err
 	}
@@ -133,10 +184,20 @@ func (a *App) initTokenConfig(_ context.Context) error {
 }
 
 func (a *App) initGRPCServer(ctx context.Context) error {
+	fmt.Println("initGRPCServer")
+	tracing.Init(logger.Logger(), "auth-service")
+
 	a.grpcServer = grpc.NewServer(
 		grpc.Creds(insecure.NewCredentials()),
 		//grpc.Creds(credsService()),
-		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
+		grpc.UnaryInterceptor(
+			grpcMiddleware.ChainUnaryServer(
+				otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer()),
+				interceptor.LogInterceptor,
+				interceptor.ValidateInterceptor,
+				interceptor.MetricsInterceptor,
+			),
+		),
 	)
 
 	reflection.Register(a.grpcServer)
@@ -166,7 +227,7 @@ func credsService() credentials.TransportCredentials {
 }
 
 func (a *App) runGRPCServer() error {
-	log.Printf("Starting gRPC server on port: %s", a.servicesProvider.GRPCConfig().Address())
+	logger.Infof("Starting gRPC server on port: %s", a.servicesProvider.GRPCConfig().Address())
 
 	list, err := net.Listen("tcp", a.servicesProvider.GRPCConfig().Address())
 	if err != nil {
@@ -219,7 +280,7 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 }
 
 func (a *App) runHTTPServer() error {
-	log.Printf("Starting HTTP server on port: %s", a.servicesProvider.HTTPConfig().Address())
+	logger.Infof("Starting HTTP server on port: %s", a.servicesProvider.HTTPConfig().Address())
 
 	err := a.httpServer.ListenAndServe()
 	if err != nil {
@@ -251,7 +312,7 @@ func (a *App) initSwaggerServer(_ context.Context) error {
 }
 
 func (a *App) runSwaggerServer() error {
-	log.Printf("Starting Swagger server on port: %s", a.servicesProvider.SwaggerConfig().Address())
+	logger.Infof("Starting Swagger server on port: %s", a.servicesProvider.SwaggerConfig().Address())
 
 	err := a.swaggerServer.ListenAndServe()
 	if err != nil {
@@ -313,4 +374,27 @@ func serveSwaggerFile(path, address string) http.HandlerFunc {
 
 		log.Printf("Served swagger file: %s", path)
 	}
+}
+
+func (a *App) initPrometheusServer(_ context.Context) error {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+
+	a.prometheusServer = &http.Server{
+		Addr:    a.servicesProvider.PrometheusConfig().Address(),
+		Handler: mux,
+	}
+
+	return nil
+}
+
+func (a *App) runPrometheusServer() error {
+	logger.Infof("Starting Prometheus server on port: %s", a.servicesProvider.PrometheusConfig().Address())
+
+	err := a.prometheusServer.ListenAndServe()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

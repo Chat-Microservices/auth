@@ -2,6 +2,8 @@ version: '3.7'
 
 volumes:
   pg_vol_auth:
+  prometheus_data:
+  grafana_data:
 
 networks:
   auth-network:
@@ -37,3 +39,24 @@ services:
       - "${GRPC_PORT_EXTERNAL}:${GRPC_PORT}"
       - "${HTTP_PORT_EXTERNAL}:${HTTP_PORT}"
       - "${SWAGGER_PORT_EXTERNAL}:${SWAGGER_PORT}"
+
+  prometheus:
+    image: prom/prometheus:v2.37.9
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alerts.yml:/etc/prometheus/alerts.yml
+      - ./.target_exporter.yml:/etc/prometheus/sd_files/.target_exporter.yml
+      - prometheus_data:/prometheus
+    networks:
+      - auth-network
+
+  grafana:
+    image: grafana/grafana-oss:10.0.3
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - auth-network

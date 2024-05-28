@@ -1,0 +1,31 @@
+global:
+  scrape_interval:     2s # Как часто собирать метрики
+  evaluation_interval: 2s # Как часто вычислять правила агрегации и алертинга
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    file_sd_configs:
+      - files:
+          - "/etc/prometheus/sd_files/*_exporter.yml"
+        refresh_interval: 1m
+    relabel_configs:
+      - source_labels: [ __meta_sd_file_path ]
+        action: keep
+      - source_labels: [ job ]
+        regex: prometheus
+        action: keep
+
+  - job_name: "app"
+    file_sd_configs:
+      - files:
+          - "/etc/prometheus/sd_files/*_exporter.yml"
+        refresh_interval: 1m
+    relabel_configs:
+      - source_labels: [ __meta_sd_file_path ]
+        action: keep
+      - source_labels: [ job ]
+        regex: app
+        action: keep

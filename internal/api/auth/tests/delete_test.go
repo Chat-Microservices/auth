@@ -86,16 +86,19 @@ func TestImplementation_Delete(t *testing.T) {
 			},
 		},
 	}
+	initLogger()
 	for _, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			authServiceMock := tt.authServiceMock(mc)
-			api := authAPI.NewImplementation(authServiceMock)
+		t.Run(
+			tt.name, func(t *testing.T) {
+				t.Parallel()
+				authServiceMock := tt.authServiceMock(mc)
+				api := authAPI.NewImplementation(authServiceMock)
 
-			resHandler, err := api.Delete(tt.args.ctx, tt.args.req)
-			require.Equal(t, tt.err, err)
-			require.Equal(t, tt.want, resHandler)
-		})
+				resHandler, err := api.Delete(tt.args.ctx, tt.args.req)
+				require.Equal(t, tt.err, err)
+				require.Equal(t, tt.want, resHandler)
+			},
+		)
 	}
 }

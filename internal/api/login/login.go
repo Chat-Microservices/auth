@@ -2,18 +2,19 @@ package loginAPI
 
 import (
 	"context"
+	"github.com/semho/chat-microservices/auth/internal/logger"
 	desc "github.com/semho/chat-microservices/auth/pkg/login_v1"
-	"log"
+	"go.uber.org/zap"
 )
 
 func (i *Implementation) Login(ctx context.Context, req *desc.LoginRequest) (*desc.LoginResponse, error) {
-	log.Printf("username: %s", req.GetUsername())
+	logger.Info("username", zap.String("username", req.GetUsername()))
 	refreshToken, err := i.loginService.Login(ctx, req.GetUsername(), req.GetPassword())
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("get refreshToken: %s", refreshToken)
+	logger.Info("refreshToken", zap.String("refreshToken", refreshToken))
 
 	return &desc.LoginResponse{
 		RefreshToken: refreshToken,
