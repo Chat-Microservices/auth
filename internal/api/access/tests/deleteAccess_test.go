@@ -80,6 +80,7 @@ func TestImplementation_DeleteAccess(t *testing.T) {
 			},
 		},
 	}
+	initLogger()
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
