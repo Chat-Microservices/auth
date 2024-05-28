@@ -36,3 +36,7 @@ type TokenConfig interface {
 	RefreshData() (string, time.Duration)
 	AccessData() (string, time.Duration)
 }
+
+type PrometheusConfig interface {
+	Address() string
+}

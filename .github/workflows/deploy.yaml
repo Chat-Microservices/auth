@@ -12,6 +12,7 @@ env:
   CONTAINER_NAME: "auth"
   TAG_NAME: ${{ github.sha }}
   FILE_ENV: ${{ secrets.ENV_FILE_CONTENTS }}
+  FILE_TARGET: ${{ secrets.ENV_FILE_TARGET }}
 
 jobs:
   build-and-push:
@@ -49,6 +50,18 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 22
           source: ".env"
+          target: "/root/auth/"
+      - name: Write .target_exporter.yml file
+        run: echo "$FILE_TARGET" > .target_exporter.yml
+      - name: Copy .target_exporter.yml file via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          source: ".target_exporter.yml"
           target: "/root/auth/"
       - name: Сopy file via ssh password
         uses: appleboy/scp-action@v0.1.7

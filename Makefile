@@ -12,6 +12,7 @@ install-deps:
 	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.15.2
 	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.15.2
 	GOBIN=$(LOCAL_BIN) go install github.com/rakyll/statik@v0.1.7
+	GOBIN=$(LOCAL_BIN) go install github.com/bojand/ghz/cmd/ghz@latest
 
 local-migration-status:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} status -v
@@ -113,3 +114,26 @@ gen-cert:
 	openssl req -new -key service.key -out service.csr -config certificate.conf && \
 	openssl x509 -req -in service.csr -CA ca.cert -CAkey ca.key -CAcreateserial \
 		-out service.pem -days 365 -sha256 -extfile certificate.conf -extensions req_ext
+
+
+# делаем обращение к серверу для имитации rps. 3000 обращений, по 100 в секунду(rps) = 30 секунд
+# сделал отдельный протофайл без шлюза и его валидации, т.к. ghz не импортирует валидацию
+grpc-load-test:
+	${LOCAL_BIN}/ghz \
+		--proto api/auth_v1/authGhz.proto \
+		--call auth_v1.AuthV1.Get \
+		--data '{"id":1}' \
+		--rps 100 \
+		--total 3000 \
+		--insecure \
+		localhost:50051
+
+grpc-error-load-test:
+	${LOCAL_BIN}/ghz \
+		--proto api/auth_v1/authGhz.proto \
+		--call auth_v1.AuthV1.Get \
+		--data '{"id":0}' \
+		--rps 100 \
+		--total 3000 \
+		--insecure \
+		localhost:50051

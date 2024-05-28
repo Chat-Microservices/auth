@@ -6,3 +6,4 @@ bin
 .idea
 vendor.protogen
 logs
+.target_exporter.yml
