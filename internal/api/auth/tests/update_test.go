@@ -95,18 +95,23 @@ func TestImplementation_Update(t *testing.T) {
 			},
 		},
 	}
+	initLogger()
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt := tt
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
-				authServiceMock := tt.authServiceMock(mc)
-				api := authAPI.NewImplementation(authServiceMock)
+		t.Run(
+			tt.name, func(t *testing.T) {
+				tt := tt
+				t.Run(
+					tt.name, func(t *testing.T) {
+						t.Parallel()
+						authServiceMock := tt.authServiceMock(mc)
+						api := authAPI.NewImplementation(authServiceMock)
 
-				resHandler, err := api.Update(tt.args.ctx, tt.args.req)
-				require.Equal(t, tt.err, err)
-				require.Equal(t, tt.want, resHandler)
-			})
-		})
+						resHandler, err := api.Update(tt.args.ctx, tt.args.req)
+						require.Equal(t, tt.err, err)
+						require.Equal(t, tt.want, resHandler)
+					},
+				)
+			},
+		)
 	}
 }

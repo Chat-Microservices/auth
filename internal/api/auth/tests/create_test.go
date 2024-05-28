@@ -76,11 +76,13 @@ func TestImplementation_Create(t *testing.T) {
 			err:  nil,
 			authServiceMock: func(mc *minimock.Controller) service.AuthService {
 				mock := serviceMocks.NewAuthServiceMock(mc)
-				mock.CreateMock.Expect(ctx, &model.Detail{
-					Name:  name,
-					Email: email,
-					Role:  1,
-				}, password).Return(id, nil)
+				mock.CreateMock.Expect(
+					ctx, &model.Detail{
+						Name:  name,
+						Email: email,
+						Role:  1,
+					}, password,
+				).Return(id, nil)
 				return mock
 			},
 		},
@@ -94,11 +96,13 @@ func TestImplementation_Create(t *testing.T) {
 			err:  serviceErr,
 			authServiceMock: func(mc *minimock.Controller) service.AuthService {
 				mock := serviceMocks.NewAuthServiceMock(mc)
-				mock.CreateMock.Expect(ctx, &model.Detail{
-					Name:  name,
-					Email: email,
-					Role:  1,
-				}, password).Return(0, serviceErr)
+				mock.CreateMock.Expect(
+					ctx, &model.Detail{
+						Name:  name,
+						Email: email,
+						Role:  1,
+					}, password,
+				).Return(0, serviceErr)
 				return mock
 			},
 		},
@@ -151,16 +155,19 @@ func TestImplementation_Create(t *testing.T) {
 			},
 		},
 	}
+	initLogger()
 	for _, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			authServiceMock := tt.authServiceMock(mc)
-			api := authAPI.NewImplementation(authServiceMock)
+		t.Run(
+			tt.name, func(t *testing.T) {
+				t.Parallel()
+				authServiceMock := tt.authServiceMock(mc)
+				api := authAPI.NewImplementation(authServiceMock)
 
-			resHandler, err := api.Create(tt.args.ctx, tt.args.req)
-			require.Equal(t, tt.err, err)
-			require.Equal(t, tt.want, resHandler)
-		})
+				resHandler, err := api.Create(tt.args.ctx, tt.args.req)
+				require.Equal(t, tt.err, err)
+				require.Equal(t, tt.want, resHandler)
+			},
+		)
 	}
 }
