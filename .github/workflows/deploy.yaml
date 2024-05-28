@@ -63,6 +63,26 @@ jobs:
           port: 22
           source: ".target_exporter.yml"
           target: "/root/auth/"
+      - name: Copy prometheus.yml file via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          source: "./prometheus.yml"
+          target: "/root/auth/"
+      - name: Copy alerts.yml file via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          source: "./alerts.yml"
+          target: "/root/auth/"
       - name: Сopy file via ssh password
         uses: appleboy/scp-action@v0.1.7
         with:
