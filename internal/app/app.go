@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"fmt"
 	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -184,8 +183,7 @@ func (a *App) initTokenConfig(_ context.Context) error {
 }
 
 func (a *App) initGRPCServer(ctx context.Context) error {
-	fmt.Println("initGRPCServer")
-	tracing.Init(logger.Logger(), "auth-service")
+	tracing.Init(logger.Logger(), "AuthService")
 
 	a.grpcServer = grpc.NewServer(
 		grpc.Creds(insecure.NewCredentials()),
